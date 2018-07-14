@@ -5,4 +5,23 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="dns\Examples\**" />
+    <Compile Remove="dns\Tests\**" />
+    <EmbeddedResource Remove="dns\Examples\**" />
+    <EmbeddedResource Remove="dns\Tests\**" />
+    <None Remove="dns\Examples\**" />
+    <None Remove="dns\Tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="dns\.git" />
+    <None Remove="dns\.gitattributes" />
+    <None Remove="dns\.gitignore" />
+    <None Remove="dns\.travis.yml" />
+    <None Remove="dns\DNS\.gitignore" />
+    <None Remove="dns\DNS\DNS.nuspec" />
+    <None Remove="dns\README.md" />
+  </ItemGroup>
+
 </Project>
