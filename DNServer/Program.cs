@@ -8,15 +8,15 @@ namespace DNServer
 {
 	internal class Program
 	{
-		static void Main(string[] args)
+		private static void Main(string[] args)
 		{
 			StartDNServer_Async().Wait();
 		}
 
-		public static async Task StartDNServer_Async()
+		private static async Task StartDNServer_Async()
 		{
 			var dnspod = new IPEndPoint(IPAddress.Parse(@"119.29.29.29"), 53);
-			var localdns = new IPEndPoint(IPAddress.Parse(@"223.113.97.99"), 53);
+			var localdns = new IPEndPoint(IPAddress.Parse(@"127.0.0.1"), 5533);
 			const string path = @"D:\Downloads\chndomains.txt";
 			var server = new DnsServer(new ApartRequestResolver(dnspod, localdns, path));
 
