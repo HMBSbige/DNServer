@@ -1140,8 +1140,11 @@ static int ParseIpAndPort(int iFlag, const char* szParamName, const char* szPort
 	if (iRet)
 	{
 		//some getaddrinfo implementations seem to have some trouble, so try the old IPv4 variant additionally
-		//((struct sockaddr_in*)psAddr)->sin_addr.s_addr = inet_addr(szIpAndPort);
+		#ifdef _WIN32
 		InetPton(AF_INET, szIpAndPort, &((struct sockaddr_in*)psAddr)->sin_addr.s_addr);
+		#else
+		((struct sockaddr_in*)psAddr)->sin_addr.s_addr = inet_addr(szIpAndPort);
+		#endif
 		if (INADDR_NONE != ((struct sockaddr_in*)psAddr)->sin_addr.s_addr)
 		{
 			((struct sockaddr_in*)psAddr)->sin_port = htons((uint16_t)atoi(szPort));
