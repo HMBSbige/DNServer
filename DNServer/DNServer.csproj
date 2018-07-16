@@ -6,15 +6,46 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="commandline\art\**" />
+    <Compile Remove="commandline\demo\**" />
+    <Compile Remove="commandline\docs\**" />
+    <Compile Remove="commandline\tests\**" />
+    <Compile Remove="commandline\wrap\**" />
     <Compile Remove="dns\Examples\**" />
     <Compile Remove="dns\Tests\**" />
+    <EmbeddedResource Remove="commandline\art\**" />
+    <EmbeddedResource Remove="commandline\demo\**" />
+    <EmbeddedResource Remove="commandline\docs\**" />
+    <EmbeddedResource Remove="commandline\tests\**" />
+    <EmbeddedResource Remove="commandline\wrap\**" />
     <EmbeddedResource Remove="dns\Examples\**" />
     <EmbeddedResource Remove="dns\Tests\**" />
+    <None Remove="commandline\art\**" />
+    <None Remove="commandline\demo\**" />
+    <None Remove="commandline\docs\**" />
+    <None Remove="commandline\tests\**" />
+    <None Remove="commandline\wrap\**" />
     <None Remove="dns\Examples\**" />
     <None Remove="dns\Tests\**" />
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="commandline\.git" />
+    <None Remove="commandline\.gitignore" />
+    <None Remove="commandline\appveyor.yml" />
+    <None Remove="commandline\build-nuget-pack.cmd" />
+    <None Remove="commandline\build.cmd" />
+    <None Remove="commandline\build.fsx" />
+    <None Remove="commandline\build.sh" />
+    <None Remove="commandline\Commandline.FSharp.nuspec" />
+    <None Remove="commandline\CommandLine.nuspec" />
+    <None Remove="commandline\CommandLine.sln.DotSettings" />
+    <None Remove="commandline\CommandLine.snk" />
+    <None Remove="commandline\global.json" />
+    <None Remove="commandline\License.md" />
+    <None Remove="commandline\paket.dependencies" />
+    <None Remove="commandline\paket.lock" />
+    <None Remove="commandline\README.md" />
     <None Remove="dns\.git" />
     <None Remove="dns\.gitattributes" />
     <None Remove="dns\.gitignore" />
@@ -22,6 +53,10 @@
     <None Remove="dns\DNS\.gitignore" />
     <None Remove="dns\DNS\DNS.nuspec" />
     <None Remove="dns\README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="commandline\src\CommandLine\CommandLine.csproj" />
   </ItemGroup>
 
 </Project>
