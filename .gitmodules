@@ -1,6 +1,3 @@
 [submodule "DNServer/dns"]
 	path = DNServer/dns
 	url = https://github.com/kapetan/dns
-[submodule "DNServer/commandline"]
-	path = DNServer/commandline
-	url = https://github.com/commandlineparser/commandline
