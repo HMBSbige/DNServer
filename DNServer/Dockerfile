@@ -4,7 +4,7 @@ WORKDIR /app
 FROM microsoft/dotnet:2.0-sdk AS build
 WORKDIR /src
 COPY DNServer.csproj DNServer/
-RUN dotnet restore DNServer.csproj
+RUN dotnet restore DNServer/DNServer.csproj
 COPY . .
 WORKDIR /src/DNServer
 RUN dotnet build DNServer.csproj -c Release -o /app
