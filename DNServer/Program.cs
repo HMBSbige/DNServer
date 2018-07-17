@@ -26,7 +26,7 @@ namespace DNServer
 		{
 			Parser.Default.ParseArguments<Options>(args)
 			.WithParsed(opts => RunOptionsAndReturnExitCode(opts))
-			.WithNotParsed((errs) => HandleParseError(errs));
+			.WithNotParsed(HandleParseError);
 
 		}
 
