@@ -1,9 +1,9 @@
-﻿FROM microsoft/dotnet:2.0-runtime AS base
+FROM microsoft/dotnet:2.0-runtime AS base
 WORKDIR /app
 
 FROM microsoft/dotnet:2.0-sdk AS build
 WORKDIR /src
-COPY DNServer.csproj DNServer/
+COPY DNServer/DNServer.csproj DNServer/
 RUN dotnet restore DNServer/DNServer.csproj
 COPY . .
 WORKDIR /src/DNServer
