@@ -82,6 +82,7 @@ namespace DNServer
 				}
 
 				Debug.WriteLine($@"DNS query {question.Name} via {dns}");
+				Console.WriteLine($@"{Environment.NewLine}DNS query {question.Name} via {dns}{Environment.NewLine}");
 				await udp.SendAsync(request.ToArray(), request.Size, dns);
 
 				var result = await udp.ReceiveAsync();
