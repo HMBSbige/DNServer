@@ -5,7 +5,6 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DNS.Client.RequestResolver;
 using DNS.Protocol;
@@ -17,8 +16,8 @@ namespace DNServer
 		private readonly IPEndPoint _updns;
 		private readonly IPEndPoint _puredns;
 
-		private readonly List<Regex> _domains = new List<Regex>();
-		public ApartRequestResolver(IPEndPoint updns, IPEndPoint puredns,string domainListPath)
+		private readonly List<string> _domains = new List<string>();
+		public ApartRequestResolver(IPEndPoint updns, IPEndPoint puredns, string domainListPath)
 		{
 			_updns = updns;
 			_puredns = puredns;
@@ -31,7 +30,7 @@ namespace DNServer
 				Console.WriteLine($@"Load ""{domainListPath}"" fail!");
 				//throw new Exception($@"Load ""{domainListPath}"" fail!");
 			}
-			
+
 		}
 
 		public void LoadDomainsList(string path)
@@ -46,9 +45,7 @@ namespace DNServer
 						var domain = line;
 						if (!string.IsNullOrWhiteSpace(domain))
 						{
-							var pattern = $@"^(.*\.)?{domain.Replace(@".", @"\.")}$";
-							var reg = new Regex(pattern);
-							_domains.Add(reg);
+							_domains.Add(domain);
 						}
 					}
 				}
@@ -72,9 +69,28 @@ namespace DNServer
 				var udp = new UdpClient();
 				var dns = _puredns;
 
+				
 				foreach (var domain in _domains)
 				{
-					if (domain.IsMatch(question.Name.ToString()))
+					var find = true;
+					var s1 = question.Name.ToString().Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
+					var s2 = domain.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
+
+					if (s1.Length < s2.Length)
+					{
+						continue;
+					}
+
+					for (var i = 0; i < s2.Length; ++i)
+					{
+						if (s2[i] != s1[s1.Length - s2.Length + i])
+						{
+							find = false;
+							break;
+						}
+					}
+
+					if (find)
 					{
 						dns = _updns;
 						break;
