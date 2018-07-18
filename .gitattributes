@@ -1,0 +1,2 @@
+# ignore C
+*.c linguist-vendored
