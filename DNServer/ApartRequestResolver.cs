@@ -19,6 +19,12 @@ namespace DNServer
 		private readonly IPEndPoint _puredns;
 
 		private readonly List<string> _domains = new List<string>();
+
+		public ApartRequestResolver(string domainListPath) : this(
+		new IPEndPoint(IPAddress.Parse(@"119.29.29.29"), 53),
+		new IPEndPoint(IPAddress.Parse(@"223.113.97.99"), 53),
+		domainListPath)
+		{ }
 		public ApartRequestResolver(IPEndPoint updns, IPEndPoint puredns, string domainListPath)
 		{
 			_updns = updns;

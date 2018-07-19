@@ -78,7 +78,8 @@ namespace DNServer
 					Console.WriteLine(responseError.Response);
 				}
 			};
-			await server.Listen(53);
+			var local = new IPEndPoint(IPAddress.Any, 53);
+			await server.Listen(local);
 		}
 	}
 }
