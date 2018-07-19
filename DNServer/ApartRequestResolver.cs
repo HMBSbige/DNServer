@@ -62,54 +62,62 @@ namespace DNServer
 			}
 		}
 
-		public async Task<IResponse> Resolve(IRequest request)
+		private bool IsOnList(string str)
 		{
-			IResponse res = Response.FromRequest(request);
-			var dns = _puredns;
-			var question = res.Questions[0];
-
 			foreach (var domain in _domains)
 			{
-				var find = true;
-				var s1 = question.Name.ToString().Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
-				var s2 = domain.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
-
-				if (s1.Length < s2.Length)
+				if (str.Length < domain.Length)
 				{
 					continue;
 				}
-
-				for (var i = 0; i < s2.Length; ++i)
+				else if (str.Length == domain.Length)
 				{
-					if (s2[i] != s1[s1.Length - s2.Length + i])
+					if (str == domain)
 					{
-						find = false;
-						break;
+						return true;
+					}
+					else
+					{
+						continue;
 					}
 				}
-
-				if (find)
+				else
 				{
-					dns = _updns;
-					break;
+					if (str[str.Length - domain.Length - 1] == '.' && str.Substring(str.Length - domain.Length) == domain)
+					{
+						return true;
+					}
+					else
+					{
+						continue;
+					}
 				}
 			}
+			return false;
+		}
+
+		public async Task<IResponse> Resolve(IRequest request)
+		{
+			IResponse res = Response.FromRequest(request);
+			var question = res.Questions[0];
+
+			var dns = IsOnList(question.Name.ToString()) ? _updns : _puredns;
 
 			Debug.WriteLine($@"DNS query {question.Name} via {dns}");
 			Console.WriteLine($@"{Environment.NewLine}DNS query {question.Name} via {dns}{Environment.NewLine}");
 
-			using (UdpClient udp = new UdpClient())
+			using (var udp = new UdpClient())
 			{
 				await udp.SendAsync(request.ToArray(), request.Size, dns).WithCancellationTimeout(5000);
 
-				UdpReceiveResult result = await udp.ReceiveAsync().WithCancellationTimeout(5000);
+				var result = await udp.ReceiveAsync().WithCancellationTimeout(5000);
 
 				if (!result.RemoteEndPoint.Equals(dns))
 				{
 					throw new IOException(@"Remote endpoint mismatch");
 				}
-				byte[] buffer = result.Buffer;
-				Response response = Response.FromArray(buffer);
+				var buffer = result.Buffer;
+				var response = Response.FromArray(buffer);
 
 				if (response.Truncated)
 				{
