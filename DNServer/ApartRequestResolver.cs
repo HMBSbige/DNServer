@@ -6,8 +6,10 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using DNS.Client;
 using DNS.Client.RequestResolver;
 using DNS.Protocol;
+using DNS.Protocol.Utils;
 
 namespace DNServer
 {
@@ -62,56 +64,60 @@ namespace DNServer
 
 		public async Task<IResponse> Resolve(IRequest request)
 		{
-			IResponse response = null;
+			IResponse res = Response.FromRequest(request);
+			var dns = _puredns;
+			var question = res.Questions[0];
 
-			foreach (var question in request.Questions)
+			foreach (var domain in _domains)
 			{
-				var udp = new UdpClient();
-				var dns = _puredns;
+				var find = true;
+				var s1 = question.Name.ToString().Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
+				var s2 = domain.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
 
-				
-				foreach (var domain in _domains)
+				if (s1.Length < s2.Length)
 				{
-					var find = true;
-					var s1 = question.Name.ToString().Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
-					var s2 = domain.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
+					continue;
+				}
 
-					if (s1.Length < s2.Length)
+				for (var i = 0; i < s2.Length; ++i)
+				{
+					if (s2[i] != s1[s1.Length - s2.Length + i])
 					{
-						continue;
-					}
-
-					for (var i = 0; i < s2.Length; ++i)
-					{
-						if (s2[i] != s1[s1.Length - s2.Length + i])
-						{
-							find = false;
-							break;
-						}
-					}
-
-					if (find)
-					{
-						dns = _updns;
+						find = false;
 						break;
 					}
 				}
 
-				Debug.WriteLine($@"DNS query {question.Name} via {dns}");
-				Console.WriteLine($@"{Environment.NewLine}DNS query {question.Name} via {dns}{Environment.NewLine}");
-				await udp.SendAsync(request.ToArray(), request.Size, dns);
-
-				var result = await udp.ReceiveAsync();
-				var buffer = result.Buffer;
-				var res = Response.FromArray(buffer);
-				response = res;
-				if (response.AnswerRecords.Count > 0)
+				if (find)
 				{
+					dns = _updns;
 					break;
 				}
 			}
 
-			return response;
+			Debug.WriteLine($@"DNS query {question.Name} via {dns}");
+			Console.WriteLine($@"{Environment.NewLine}DNS query {question.Name} via {dns}{Environment.NewLine}");
+
+			using (UdpClient udp = new UdpClient())
+			{
+				await udp.SendAsync(request.ToArray(), request.Size, dns).WithCancellationTimeout(5000);
+
+				UdpReceiveResult result = await udp.ReceiveAsync().WithCancellationTimeout(5000);
+
+				if (!result.RemoteEndPoint.Equals(dns))
+				{
+					throw new IOException(@"Remote endpoint mismatch");
+				}
+				byte[] buffer = result.Buffer;
+				Response response = Response.FromArray(buffer);
+
+				if (response.Truncated)
+				{
+					return await new NullRequestResolver().Resolve(request);
+				}
+
+				return new ClientResponse(request, response, buffer);
+			}
 		}
 	}
 }

@@ -78,8 +78,11 @@ namespace DNServer
 					Console.WriteLine(responseError.Response);
 				}
 			};
-
+#if DEBUG
+			await server.Listen(54);
+#else
 			await server.Listen(53);
+#endif
 		}
 	}
 }
