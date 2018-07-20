@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using DNS.Client;
 using DNS.Client.RequestResolver;
 using DNS.Protocol;
+using DNS.Protocol.ResourceRecords;
 using DNS.Protocol.Utils;
 
 namespace DNServer
@@ -21,8 +22,8 @@ namespace DNServer
 		private readonly List<string> _domains = new List<string>();
 
 		public ApartRequestResolver(string domainListPath) : this(
-		new IPEndPoint(IPAddress.Parse(@"119.29.29.29"), 53),
-		new IPEndPoint(IPAddress.Parse(@"223.113.97.99"), 53),
+		new IPEndPoint(IPAddress.Parse(@"119.29.29.29"), Program.DNSDefaultPort),
+		new IPEndPoint(IPAddress.Parse(@"223.113.97.99"), Program.DNSDefaultPort),
 		domainListPath)
 		{ }
 		public ApartRequestResolver(IPEndPoint updns, IPEndPoint puredns, string domainListPath)
@@ -43,6 +44,9 @@ namespace DNServer
 
 		public void LoadDomainsList(string path)
 		{
+			_domains.Add(@"in-addr.arpa");
+			_domains.Add(@"lan");
+			_domains.Add(@"local");
 			if (File.Exists(path))
 			{
 				using (var sr = new StreamReader(path, Encoding.UTF8))
@@ -109,9 +113,6 @@ namespace DNServer
 
 			var dns = IsOnList(question.Name.ToString()) ? _updns : _puredns;
 
-			Debug.WriteLine($@"DNS query {question.Name} via {dns}");
-			Console.WriteLine($@"{Environment.NewLine}DNS query {question.Name} via {dns}{Environment.NewLine}");
-
 			using (var udp = new UdpClient())
 			{
 				await udp.SendAsync(request.ToArray(), request.Size, dns).WithCancellationTimeout(5000);
@@ -129,8 +130,45 @@ namespace DNServer
 				{
 					return await new NullRequestResolver().Resolve(request);
 				}
+				var re = new ClientResponse(request, response, buffer);
 
-				return new ClientResponse(request, response, buffer);
+				var records = re.AnswerRecords;
+				if (records.Count == 0)
+				{
+					Debug.WriteLine($@"DNS query {question.Name} no answer via {dns}");
+					Console.WriteLine($@"DNS query {question.Name} no answer via {dns}");
+				}
+				else
+				{
+					foreach (var record in records)
+					{
+						if (record.Type == RecordType.A || record.Type == RecordType.AAAA)
+						{
+							var iprecord = (IPAddressResourceRecord)record;
+							Debug.WriteLine($@"DNS query {question.Name} answer {iprecord.IPAddress} via {dns}");
+							Console.WriteLine($@"DNS query {question.Name} answer {iprecord.IPAddress} via {dns}");
+						}
+						else if (record.Type == RecordType.CNAME)
+						{
+							var cnamerecord = (CanonicalNameResourceRecord)record;
+							Debug.WriteLine($@"DNS query {question.Name} answer {cnamerecord.CanonicalDomainName} via {dns}");
+							Console.WriteLine($@"DNS query {question.Name} answer {cnamerecord.CanonicalDomainName} via {dns}");
+						}
+						else if (record.Type == RecordType.PTR)
+						{
+							var ptrrecord = (PointerResourceRecord)record;
+							Debug.WriteLine($@"DNS query {Common.PTRName2IP(question.Name.ToString())} answer {ptrrecord.PointerDomainName} via {dns}");
+							Console.WriteLine($@"DNS query {Common.PTRName2IP(question.Name.ToString())} answer {ptrrecord.PointerDomainName} via {dns}");
+						}
+						else
+						{
+							Debug.WriteLine($@"DNS query {question.Name} {record.Type} via {dns}");
+							Console.WriteLine($@"DNS query {question.Name} {record.Type} via {dns}");
+						}
+					}
+				}
+
+				return re;
 			}
 		}
 	}
