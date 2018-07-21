@@ -19,7 +19,7 @@ namespace DNServer
 			[Option('b', @"bindip", HelpText = @"Listen on...", Default = @"0.0.0.0:53")]
 			public string BindIpEndPoint { get; set; }
 
-			[Option('u', @"updns", HelpText = @"Up DNS Server", Default = @"119.29.29.29:53")]
+			[Option('u', @"updns", HelpText = @"Up DNS Server", Default = @"114.114.114.114:53")]
 			public string UpDNS { get; set; }
 
 			[Option('p', @"puredns", HelpText = @"Pure DNS Server", Default = @"223.113.97.99:53")]

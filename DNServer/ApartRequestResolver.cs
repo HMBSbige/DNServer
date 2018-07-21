@@ -22,7 +22,7 @@ namespace DNServer
 		private readonly List<string> _domains = new List<string>();
 
 		public ApartRequestResolver(string domainListPath) : this(
-		new IPEndPoint(IPAddress.Parse(@"119.29.29.29"), Program.DNSDefaultPort),
+		new IPEndPoint(IPAddress.Parse(@"114.114.114.114"), Program.DNSDefaultPort),
 		new IPEndPoint(IPAddress.Parse(@"223.113.97.99"), Program.DNSDefaultPort),
 		domainListPath)
 		{ }
