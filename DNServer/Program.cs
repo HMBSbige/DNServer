@@ -22,13 +22,19 @@ namespace DNServer
 			[Option('u', @"updns", HelpText = @"Up DNS Server", Default = @"114.114.114.114:53")]
 			public string UpDNS { get; set; }
 
-			[Option('p', @"puredns", HelpText = @"Pure DNS Server", Default = @"223.113.97.99:53")]
+			[Option('p', @"puredns", HelpText = @"Pure DNS Server", Default = @"101.6.6.6:53")]
 			public string PureDNS { get; set; }
 
 			[Option('l', @"list", HelpText = @"Domains list file path", Default = @"chndomains.txt")]
 			public string Path { get; set; }
 		}
-
+		/* Pure DNS Server List
+		 * 101.6.6.6:53
+		 * 202.141.162.123:53
+		 * 223.113.97.99:53
+		 * 208.67.222.222:5353
+		 * 208.67.220.220:443
+		 */
 		public static bool Verbose = false;
 		public const int DNSDefaultPort = 53;
 		private const int ListenDefaultPort = DNSDefaultPort;
