@@ -13,6 +13,10 @@ namespace DNServer
 
 		public static IPEndPoint String2IPEndPoint(string str)
 		{
+			if (str == null)
+			{
+				return null;
+			}
 			var s = str.Split(':');
 			var ip = IPAddress.Parse(s[0]);
 			var port = Convert.ToInt32(s[1]);

@@ -23,23 +23,30 @@ namespace DNServer
 
 		public ApartRequestResolver(string domainListPath) : this(
 		new IPEndPoint(IPAddress.Parse(@"114.114.114.114"), Program.DNSDefaultPort),
-		new IPEndPoint(IPAddress.Parse(@"223.113.97.99"), Program.DNSDefaultPort),
+		new IPEndPoint(IPAddress.Parse(@"101.6.6.6"), Program.DNSDefaultPort),
 		domainListPath)
 		{ }
+
+		public ApartRequestResolver(IPEndPoint updns, string domainListPath) :
+		this(updns, null, domainListPath)
+		{ }
+
 		public ApartRequestResolver(IPEndPoint updns, IPEndPoint puredns, string domainListPath)
 		{
 			_updns = updns;
 			_puredns = puredns;
-			try
+			if (_puredns != null)
 			{
-				LoadDomainsList(domainListPath);
+				try
+				{
+					LoadDomainsList(domainListPath);
+				}
+				catch
+				{
+					Console.WriteLine($@"Load ""{domainListPath}"" fail!");
+					//throw new Exception($@"Load ""{domainListPath}"" fail!");
+				}
 			}
-			catch
-			{
-				Console.WriteLine($@"Load ""{domainListPath}"" fail!");
-				//throw new Exception($@"Load ""{domainListPath}"" fail!");
-			}
-
 		}
 
 		public void LoadDomainsList(string path)
@@ -110,8 +117,15 @@ namespace DNServer
 		{
 			IResponse res = Response.FromRequest(request);
 			var question = res.Questions[0];
-
-			var dns = IsOnList(question.Name.ToString()) ? _updns : _puredns;
+			IPEndPoint dns;
+			if (_puredns != null)
+			{
+				dns = IsOnList(question.Name.ToString()) ? _updns : _puredns;
+			}
+			else
+			{
+				dns = _updns;
+			}
 
 			using (var udp = new UdpClient())
 			{
@@ -167,7 +181,6 @@ namespace DNServer
 						}
 					}
 				}
-
 				return re;
 			}
 		}

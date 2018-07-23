@@ -22,7 +22,7 @@ namespace DNServer
 			[Option('u', @"updns", HelpText = @"Up DNS Server", Default = @"114.114.114.114:53")]
 			public string UpDNS { get; set; }
 
-			[Option('p', @"puredns", HelpText = @"Pure DNS Server", Default = @"101.6.6.6:53")]
+			[Option('p', @"puredns", HelpText = @"Pure DNS Server", Default = null)]
 			public string PureDNS { get; set; }
 
 			[Option('l', @"list", HelpText = @"Domains list file path", Default = @"chndomains.txt")]
@@ -57,7 +57,10 @@ namespace DNServer
 				updns = Common.String2IPEndPoint(options.UpDNS);
 				Console.WriteLine($@"UpDNS:{updns}");
 				puredns = Common.String2IPEndPoint(options.PureDNS);
-				Console.WriteLine($@"PureDNS:{puredns}");
+				if (puredns != null)
+				{
+					Console.WriteLine($@"PureDNS:{puredns}");
+				}
 				bindIpEndPoint = Common.String2IPEndPoint(options.BindIpEndPoint);
 				Console.WriteLine($@"Listen on:{bindIpEndPoint}");
 			}
@@ -77,8 +80,8 @@ namespace DNServer
 
 		private static async Task StartDNServer_Async(IPEndPoint updns, IPEndPoint puredns, string path)
 		{
-			var local = new IPEndPoint(IPAddress.Any, ListenDefaultPort);
-			await StartDNServer_Async(updns, puredns, path, local);
+			var any = new IPEndPoint(IPAddress.Any, ListenDefaultPort);
+			await StartDNServer_Async(updns, puredns, path, any);
 		}
 		private static async Task StartDNServer_Async(IPEndPoint updns, IPEndPoint puredns, string path, IPEndPoint bindipPoint)
 		{
