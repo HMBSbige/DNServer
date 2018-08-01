@@ -49,19 +49,19 @@ namespace DNServer
 		private static int RunOptionsAndReturnExitCode(Options options)
 		{
 			Verbose = options.Verbose;
-			IPEndPoint updns;
-			IPEndPoint puredns;
+			IPEndPoint[] updns;
+			IPEndPoint[] puredns;
 			IPEndPoint bindIpEndPoint;
 			try
 			{
-				updns = Common.String2IPEndPoint(options.UpDNS);
-				Console.WriteLine($@"UpDNS:{updns}");
-				puredns = Common.String2IPEndPoint(options.PureDNS);
+				updns = Common.ToIPEndPoints(options.UpDNS, 53, new[] { ',', '，' }) as IPEndPoint[];
+				Console.WriteLine($@"UpDNS:{Common.FromIPEndPoints(updns)}");
+				puredns = Common.ToIPEndPoints(options.PureDNS, 53, new[] { ',', '，' }) as IPEndPoint[];
 				if (puredns != null)
 				{
-					Console.WriteLine($@"PureDNS:{puredns}");
+					Console.WriteLine($@"PureDNS:{Common.FromIPEndPoints(puredns)}");
 				}
-				bindIpEndPoint = Common.String2IPEndPoint(options.BindIpEndPoint);
+				bindIpEndPoint = Common.ToIPEndPoint(options.BindIpEndPoint, 53);
 				Console.WriteLine($@"Listen on:{bindIpEndPoint}");
 			}
 			catch
@@ -78,12 +78,12 @@ namespace DNServer
 		{
 		}
 
-		private static async Task StartDNServer_Async(IPEndPoint updns, IPEndPoint puredns, string path)
+		private static async Task StartDNServer_Async(IPEndPoint[] updns, IPEndPoint[] puredns, string path)
 		{
 			var any = new IPEndPoint(IPAddress.Any, ListenDefaultPort);
 			await StartDNServer_Async(updns, puredns, path, any);
 		}
-		private static async Task StartDNServer_Async(IPEndPoint updns, IPEndPoint puredns, string path, IPEndPoint bindipPoint)
+		private static async Task StartDNServer_Async(IPEndPoint[] updns, IPEndPoint[] puredns, string path, IPEndPoint bindipPoint)
 		{
 			var server = new DnsServer(new ApartRequestResolver(updns, puredns, path));
 
@@ -92,7 +92,7 @@ namespace DNServer
 				server.Requested += (request) => Console.WriteLine($@"Requested: {request}");
 				server.Responded += (request, response) => Console.WriteLine($@"Responded: {request} => {response}");
 			}
-			server.Listening += () => Console.WriteLine($@"Listening:");
+			server.Listening += () => Console.WriteLine(@"Listening:");
 			server.Errored += (e) =>
 			{
 				Console.WriteLine($@"Errored: {e}");

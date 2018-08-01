@@ -16,22 +16,18 @@ namespace DNServer
 {
 	public class ApartRequestResolver : IRequestResolver
 	{
-		private readonly IPEndPoint _updns;
-		private readonly IPEndPoint _puredns;
+		public int Timeout = 1000;
+
+		private readonly IPEndPoint[] _updns;
+		private readonly IPEndPoint[] _puredns;
 
 		private readonly List<string> _domains = new List<string>();
 
-		public ApartRequestResolver(string domainListPath) : this(
-		new IPEndPoint(IPAddress.Parse(@"114.114.114.114"), Program.DNSDefaultPort),
-		new IPEndPoint(IPAddress.Parse(@"101.6.6.6"), Program.DNSDefaultPort),
-		domainListPath)
-		{ }
-
-		public ApartRequestResolver(IPEndPoint updns, string domainListPath) :
+		public ApartRequestResolver(IPEndPoint[] updns, string domainListPath) :
 		this(updns, null, domainListPath)
 		{ }
 
-		public ApartRequestResolver(IPEndPoint updns, IPEndPoint puredns, string domainListPath)
+		public ApartRequestResolver(IPEndPoint[] updns, IPEndPoint[] puredns, string domainListPath)
 		{
 			_updns = updns;
 			_puredns = puredns;
@@ -113,76 +109,104 @@ namespace DNServer
 			return false;
 		}
 
+		private bool OutputLog(IList<IResourceRecord> records, Domain name, IPEndPoint dns)
+		{
+			if (records.Count == 0)
+			{
+				Debug.WriteLine($@"DNS query {name} no answer via {dns}");
+				Console.WriteLine($@"DNS query {name} no answer via {dns}");
+				return true;
+			}
+			else
+			{
+				foreach (var record in records)
+				{
+					string outstr;
+					if (record.Type == RecordType.A || record.Type == RecordType.AAAA)
+					{
+						var iprecord = (IPAddressResourceRecord)record;
+						outstr = $@"DNS query {name} answer {iprecord.IPAddress} via {dns}";
+					}
+					else if (record.Type == RecordType.CNAME)
+					{
+						var cnamerecord = (CanonicalNameResourceRecord)record;
+						outstr = $@"DNS query {name} answer {cnamerecord.CanonicalDomainName} via {dns}";
+					}
+					else if (record.Type == RecordType.PTR)
+					{
+						var ptrrecord = (PointerResourceRecord)record;
+						outstr = $@"DNS query {Common.PTRName2IP(name.ToString())} answer {ptrrecord.PointerDomainName} via {dns}";
+					}
+					else
+					{
+						outstr = $@"DNS query {name} {record.Type} via {dns}";
+					}
+					Debug.WriteLine(outstr);
+					Console.WriteLine(outstr);
+				}
+				return false;
+			}
+		}
+
 		public async Task<IResponse> Resolve(IRequest request)
 		{
 			IResponse res = Response.FromRequest(request);
 			var question = res.Questions[0];
-			IPEndPoint dns;
+			IPEndPoint[] dnsS;
 			if (_puredns != null)
 			{
-				dns = IsOnList(question.Name.ToString()) ? _updns : _puredns;
+				dnsS = IsOnList(question.Name.ToString()) ? _updns : _puredns;
 			}
 			else
 			{
-				dns = _updns;
+				dnsS = _updns;
 			}
 
-			using (var udp = new UdpClient())
+			ClientResponse clientResponse = null;
+			foreach (var dns in dnsS)
 			{
-				await udp.SendAsync(request.ToArray(), request.Size, dns).WithCancellationTimeout(5000);
-
-				var result = await udp.ReceiveAsync().WithCancellationTimeout(5000);
-
-				if (!result.RemoteEndPoint.Equals(dns))
+				using (var udp = new UdpClient())
 				{
-					throw new IOException(@"Remote endpoint mismatch");
-				}
-				var buffer = result.Buffer;
-				var response = Response.FromArray(buffer);
-
-				if (response.Truncated)
-				{
-					return await new NullRequestResolver().Resolve(request);
-				}
-				var re = new ClientResponse(request, response, buffer);
-
-				var records = re.AnswerRecords;
-				if (records.Count == 0)
-				{
-					Debug.WriteLine($@"DNS query {question.Name} no answer via {dns}");
-					Console.WriteLine($@"DNS query {question.Name} no answer via {dns}");
-				}
-				else
-				{
-					foreach (var record in records)
+					UdpReceiveResult result;
+					try
 					{
-						if (record.Type == RecordType.A || record.Type == RecordType.AAAA)
-						{
-							var iprecord = (IPAddressResourceRecord)record;
-							Debug.WriteLine($@"DNS query {question.Name} answer {iprecord.IPAddress} via {dns}");
-							Console.WriteLine($@"DNS query {question.Name} answer {iprecord.IPAddress} via {dns}");
-						}
-						else if (record.Type == RecordType.CNAME)
-						{
-							var cnamerecord = (CanonicalNameResourceRecord)record;
-							Debug.WriteLine($@"DNS query {question.Name} answer {cnamerecord.CanonicalDomainName} via {dns}");
-							Console.WriteLine($@"DNS query {question.Name} answer {cnamerecord.CanonicalDomainName} via {dns}");
-						}
-						else if (record.Type == RecordType.PTR)
-						{
-							var ptrrecord = (PointerResourceRecord)record;
-							Debug.WriteLine($@"DNS query {Common.PTRName2IP(question.Name.ToString())} answer {ptrrecord.PointerDomainName} via {dns}");
-							Console.WriteLine($@"DNS query {Common.PTRName2IP(question.Name.ToString())} answer {ptrrecord.PointerDomainName} via {dns}");
-						}
-						else
-						{
-							Debug.WriteLine($@"DNS query {question.Name} {record.Type} via {dns}");
-							Console.WriteLine($@"DNS query {question.Name} {record.Type} via {dns}");
-						}
+						await udp.SendAsync(request.ToArray(), request.Size, dns).WithCancellationTimeout(Timeout);
+						result = await udp.ReceiveAsync().WithCancellationTimeout(Timeout);
+					}
+					catch
+					{
+						Console.WriteLine($@"DNS query timeout via {dns}");
+						continue;
+					}
+					if (!result.RemoteEndPoint.Equals(dns))
+					{
+						throw new IOException(@"Remote endpoint mismatch");
+					}
+
+					var buffer = result.Buffer;
+					var response = Response.FromArray(buffer);
+
+					if (response.Truncated)
+					{
+						return await new NullRequestResolver().Resolve(request);
+					}
+					clientResponse = new ClientResponse(request, response, buffer);
+
+					var records = clientResponse.AnswerRecords;
+					var noanswer = OutputLog(records, question.Name, dns);
+					if (!noanswer)
+					{
+						return clientResponse;
 					}
 				}
-				return re;
 			}
+
+			if (clientResponse == null)
+			{
+				Console.WriteLine(@"All DNS Servers response timeout!");
+				throw new IOException(@"All DNS Servers response timeout!");
+			}
+			return clientResponse;
 		}
 	}
 }
