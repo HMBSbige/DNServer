@@ -109,7 +109,7 @@ namespace DNServer
 			return false;
 		}
 
-		private bool OutputLog(IList<IResourceRecord> records, Domain name, IPEndPoint dns)
+		private static bool OutputLog(ICollection<IResourceRecord> records, Domain name, IPEndPoint dns)
 		{
 			if (records.Count == 0)
 			{
