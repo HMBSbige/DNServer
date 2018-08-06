@@ -1336,7 +1336,7 @@ int main(int iArgCount, char** szaArgs)
 		//either correct help request or unknown parameter -> display usage and stop
 		OutputFatal("\nDNS2SOCKS tunnels DNS requests via SOCKS5 and caches the answers.\n\n\n"
 			"Usage:\n\n"
-			"DNS2SOCKS [/?] [/t] [/d] [/q] [/l[a]:FilePath] [/u:User /p:Password]\n"
+			"DNS2PROXY [/?] [/t] [/d] [/q] [/l[a]:FilePath] [/u:User /p:Password]\n"
 			"          [Socks5ServerIP[:Port]] [DNSServerIPorName[:Port]] [ListenIP[:Port]]\n\n"
 			"/?            to view this help\n"
 			"/t            to use a HTTP proxy instead of a SOCKS server\n"
