@@ -47,7 +47,7 @@ namespace DNServer
 
 		public void LoadDomainsList(string path)
 		{
-			_domains.Add(@"in-addr.arpa");
+			//_domains.Add(@"in-addr.arpa");
 			_domains.Add(@"lan");
 			_domains.Add(@"local");
 			if (File.Exists(path))
