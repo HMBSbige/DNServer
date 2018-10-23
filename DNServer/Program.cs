@@ -1,10 +1,10 @@
-﻿using System;
+﻿using CommandLine;
+using DNS.Client;
+using DNS.Server;
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
-using DNS.Client;
-using DNS.Server;
-using CommandLine;
 
 namespace DNServer
 {
@@ -83,20 +83,21 @@ namespace DNServer
 			var any = new IPEndPoint(IPAddress.Any, ListenDefaultPort);
 			await StartDNServer_Async(updns, puredns, path, any);
 		}
+
 		private static async Task StartDNServer_Async(IPEndPoint[] updns, IPEndPoint[] puredns, string path, IPEndPoint bindipPoint)
 		{
 			var server = new DnsServer(new ApartRequestResolver(updns, puredns, path));
 
 			if (Verbose)
 			{
-				server.Requested += (request) => Console.WriteLine($@"Requested: {request}");
-				server.Responded += (request, response) => Console.WriteLine($@"Responded: {request} => {response}");
+				server.Requested += (sender, e) => Console.WriteLine(e.Request);
+				server.Responded += (sender, e) => Console.WriteLine($@"{e.Request} => {e.Response}");
 			}
-			server.Listening += () => Console.WriteLine(@"Listening:");
-			server.Errored += (e) =>
+			server.Listening += (sender, e) => Console.WriteLine(@"Listening:");
+			server.Errored += (sender, e) =>
 			{
-				Console.WriteLine($@"Errored: {e}");
-				if (e is ResponseException responseError)
+				Console.WriteLine($@"Errored: {e.Exception}");
+				if (e.Exception is ResponseException responseError)
 				{
 					Console.WriteLine(responseError.Response);
 				}
