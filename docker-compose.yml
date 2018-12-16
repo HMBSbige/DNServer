@@ -2,7 +2,7 @@ version: '3.4'
 
 services:
   dnserver:
-    image: ${DOCKER_REGISTRY}dnserver
+    image: ${DOCKER_REGISTRY-}dnserver
     build:
       context: .
       dockerfile: DNServer/Dockerfile
