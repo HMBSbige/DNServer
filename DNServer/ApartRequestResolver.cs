@@ -86,6 +86,10 @@ namespace DNServer
 			{
 				str = str.RemoveLastString(@".local");
 			}
+			else if (str.EndsWith(@".localdomain"))
+			{
+				str = str.RemoveLastString(@".localdomain");
+			}
 
 			if (_domains.TryGetValue(str, out _))
 			{
