@@ -80,5 +80,27 @@ namespace DNServer
 		{
 			return string.Join(separator, ipEndPoints);
 		}
+
+		public static string RemoveLastString(this string str, string value)
+		{
+			var index = str.LastIndexOf(value, StringComparison.Ordinal);
+			if (index != -1)
+			{
+				return str.Substring(0, index);
+			}
+
+			return str;
+		}
+
+		public static string RemoveStartString(this string str, string value)
+		{
+			var index = str.IndexOf(value, StringComparison.Ordinal);
+			if (index == 0)
+			{
+				return str.Substring(value.Length);
+			}
+
+			return str;
+		}
 	}
 }

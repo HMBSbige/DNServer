@@ -1,4 +1,9 @@
-﻿using System;
+﻿using DNS.Client;
+using DNS.Client.RequestResolver;
+using DNS.Protocol;
+using DNS.Protocol.ResourceRecords;
+using DNS.Protocol.Utils;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -6,11 +11,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
-using DNS.Client;
-using DNS.Client.RequestResolver;
-using DNS.Protocol;
-using DNS.Protocol.ResourceRecords;
-using DNS.Protocol.Utils;
 
 namespace DNServer
 {
@@ -21,7 +21,7 @@ namespace DNServer
 		private readonly IPEndPoint[] _updns;
 		private readonly IPEndPoint[] _puredns;
 
-		private readonly List<string> _domains = new List<string>();
+		private readonly HashSet<string> _domains = new HashSet<string>();
 
 		public ApartRequestResolver(IPEndPoint[] updns, string domainListPath) :
 		this(updns, null, domainListPath)
@@ -47,9 +47,6 @@ namespace DNServer
 
 		public void LoadDomainsList(string path)
 		{
-			//_domains.Add(@"in-addr.arpa");
-			_domains.Add(@"lan");
-			_domains.Add(@"local");
 			if (File.Exists(path))
 			{
 				using (var sr = new StreamReader(path, Encoding.UTF8))
@@ -77,33 +74,37 @@ namespace DNServer
 
 		private bool IsOnList(string str)
 		{
-			foreach (var domain in _domains)
+			if (str.EndsWith(@"in-addr.arpa"))
 			{
-				if (str.Length < domain.Length)
+				return true;
+			}
+			if (str.EndsWith(@".lan"))
+			{
+				str = str.RemoveLastString(@".lan");
+			}
+			else if (str.EndsWith(@".local"))
+			{
+				str = str.RemoveLastString(@".local");
+			}
+
+			if (_domains.TryGetValue(str, out _))
+			{
+				return true;
+			}
+
+			var parts = str.Split('.');
+			foreach (var part in parts)
+			{
+				str = str.RemoveStartString(part);
+				str = str.RemoveStartString(@".");
+				if (string.IsNullOrWhiteSpace(str))
 				{
-					continue;
+					return false;
 				}
-				else if (str.Length == domain.Length)
+
+				if (_domains.TryGetValue(str, out _))
 				{
-					if (str == domain)
-					{
-						return true;
-					}
-					else
-					{
-						continue;
-					}
-				}
-				else
-				{
-					if (str[str.Length - domain.Length - 1] == '.' && str.Substring(str.Length - domain.Length) == domain)
-					{
-						return true;
-					}
-					else
-					{
-						continue;
-					}
+					return true;
 				}
 			}
 			return false;
@@ -193,8 +194,8 @@ namespace DNServer
 					clientResponse = new ClientResponse(request, response, buffer);
 
 					var records = clientResponse.AnswerRecords;
-					var noanswer = OutputLog(records, question.Name, dns);
-					if (!noanswer)
+					var noAnswer = OutputLog(records, question.Name, dns);
+					if (!noAnswer)
 					{
 						return clientResponse;
 					}
