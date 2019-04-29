@@ -45,7 +45,7 @@ DNS2PROXY /d 10.1.1.1:23333 1.1.1.1:53 0.0.0.0:53
 
 #### Docker
 ```
-docker run -itd --name=dns2proxy --restart=always -p 53:53/udp hmbsbige/dnserver:dns2proxy 10.1.1.1:23333 1.1.1.1:53 0.0.0.0:53
+docker run -itd --name=dns2proxy --restart=always -p 53:53/udp hmbsbige/dnserver:dns2proxy /d 10.1.1.1:23333 1.1.1.1:53 0.0.0.0:53
 ```
 
 ## DNServer
@@ -91,13 +91,21 @@ https://www.microsoft.com/net/download/all
 
 ### 运行参数
 ```
-  --verbose        (Default: false) Prints all messages to standard output.
-
-  -b, --bindip     (Default: 0.0.0.0:53) Listen on...
-
-  -u, --updns      (Default: 114.114.114.114:53) Up DNS Server
+  -u, --updns      (Default: 101.226.4.6) Upstream DNS Server
 
   -p, --puredns    Pure DNS Server
+
+  --upport         (Default: 53) Upstream DNS Server Port
+
+  --pureport       (Default: 53) Pure DNS Server Port
+
+  --upecs          Upstream DNS Server Client Subnet, a ip address
+
+  --pureecs        Pure DNS Server Client Subnet, a ip address
+
+  --udp            (Default: 100) The count of threads listings on udp, 0 to deactivate udp
+
+  --tcp            (Default: 100) The count of threads listings on tcp, 0 to deactivate tcp
 
   -l, --list       (Default: chndomains.txt) Domains list file path
 

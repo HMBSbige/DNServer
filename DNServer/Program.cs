@@ -1,43 +1,55 @@
-﻿using CommandLine;
-using DNS.Client;
-using DNS.Server;
+﻿using ARSoft.Tools.Net.Dns;
+using CommandLine;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
 namespace DNServer
 {
-	internal class Program
+	internal static class Program
 	{
 		private class Options
 		{
 			// Omitting long name, defaults to name of property, ie "--verbose"
-			[Option(Default = false, HelpText = @"Prints all messages to standard output.")]
+			[Option(Default = true, HelpText = @"Prints all messages to standard output.")]
 			public bool Verbose { get; set; }
 
 			[Option('b', @"bindip", HelpText = @"Listen on...", Default = @"0.0.0.0:53")]
 			public string BindIpEndPoint { get; set; }
 
-			[Option('u', @"updns", HelpText = @"Up DNS Server", Default = @"114.114.114.114:53")]
+			[Option('u', @"updns", HelpText = @"Upstream DNS Server", Default = @"101.226.4.6")]
 			public string UpDNS { get; set; }
 
 			[Option('p', @"puredns", HelpText = @"Pure DNS Server", Default = null)]
 			public string PureDNS { get; set; }
 
+			[Option(@"upport", HelpText = @"Upstream DNS Server Port", Default = DNSDefaultPort)]
+			public ushort UpDnsPort { get; set; }
+
+			[Option(@"pureport", HelpText = @"Pure DNS Server Port", Default = DNSDefaultPort)]
+			public ushort PureDnsPort { get; set; }
+
+			[Option(@"upecs", HelpText = @"Upstream DNS Server Client Subnet, a ip address", Default = null)]
+			public string UpEcs { get; set; }
+
+			[Option(@"pureecs", HelpText = @"Pure DNS Server Client Subnet, a ip address", Default = null)]
+			public string PureEcs { get; set; }
+
+			[Option(@"udp", HelpText = @"The count of threads listings on udp, 0 to deactivate udp", Default = DEFAULT_NUMBER_OF_CONCURRENCY)]
+			public int UdpCount { get; set; }
+
+			[Option(@"tcp", HelpText = @"The count of threads listings on tcp, 0 to deactivate tcp", Default = DEFAULT_NUMBER_OF_CONCURRENCY)]
+			public int TcpCount { get; set; }
+
 			[Option('l', @"list", HelpText = @"Domains list file path", Default = @"chndomains.txt")]
 			public string Path { get; set; }
 		}
-		/* Pure DNS Server List
-		 * 101.6.6.6:53
-		 * 202.141.162.123:53
-		 * 223.113.97.99:53
-		 * 208.67.222.222:5353
-		 * 208.67.220.220:443
-		 */
-		public static bool Verbose = false;
+
+		public static bool Verbose = true;
 		public const int DNSDefaultPort = 53;
-		private const int ListenDefaultPort = DNSDefaultPort;
+		public const int DEFAULT_NUMBER_OF_CONCURRENCY = 100;
 
 		public static void Main(string[] args)
 		{
@@ -49,60 +61,112 @@ namespace DNServer
 		private static int RunOptionsAndReturnExitCode(Options options)
 		{
 			Verbose = options.Verbose;
-			IPEndPoint[] updns;
-			IPEndPoint[] puredns;
+			IEnumerable<IPAddress> updns;
+			IEnumerable<IPAddress> puredns;
+			IPAddress upEcs;
+			IPAddress pureEcs;
 			IPEndPoint bindIpEndPoint;
+
+			List<IPAddress> ipAddresses;
+			List<IPAddress> pureDns;
 			try
 			{
-				updns = Common.ToIPEndPoints(options.UpDNS, 53, new[] { ',', '，' }) as IPEndPoint[];
-				Console.WriteLine($@"UpDNS:{Common.FromIPEndPoints(updns)}");
-				puredns = Common.ToIPEndPoints(options.PureDNS, 53, new[] { ',', '，' }) as IPEndPoint[];
-				if (puredns != null)
+				updns = Common.ToIpAddresses(options.UpDNS, new[] { ',', '，' });
+				ipAddresses = updns.ToList();
+				Console.WriteLine($@"UpDNS: {Common.FromIpAddresses(ipAddresses)}");
+
+				puredns = Common.ToIpAddresses(options.PureDNS, new[] { ',', '，' });
+				if (puredns == null)
 				{
-					Console.WriteLine($@"PureDNS:{Common.FromIPEndPoints(puredns)}");
+					puredns = ipAddresses;
 				}
+				pureDns = puredns.ToList();
+				Console.WriteLine($@"PureDNS: {Common.FromIpAddresses(pureDns)}");
+
 				bindIpEndPoint = Common.ToIPEndPoint(options.BindIpEndPoint, 53);
-				Console.WriteLine($@"Listen on:{bindIpEndPoint}");
+				Console.WriteLine($@"Listen on: {bindIpEndPoint}");
+
+				upEcs = Common.ToIpAddress(options.UpEcs);
+				if (upEcs != null)
+				{
+					Console.WriteLine($@"Upstream DNS Server Client Subnet: {upEcs}");
+				}
+
+				pureEcs = Common.ToIpAddress(options.PureEcs);
+				if (pureEcs != null)
+				{
+					Console.WriteLine($@"Pure DNS Server Client Subnet: {pureEcs}");
+				}
 			}
 			catch
 			{
 				Console.WriteLine(@"DNS Server ERROR!");
 				return 1;
 			}
-			var path = options.Path;
-			StartDNServer_Async(updns, puredns, path, bindIpEndPoint).Wait();
-			return 0;
+			var list = Common.ReadLines(options.Path);
+
+			StartDNServer(ipAddresses, options.UpDnsPort,
+				pureDns, options.PureDnsPort,
+				options.UdpCount, options.TcpCount,
+				upEcs, pureEcs,
+				list, bindIpEndPoint, 10000);
+			while (true)
+			{
+
+			}
+			// return 0;
 		}
 
 		private static void HandleParseError(IEnumerable<Error> errs)
 		{
+			Console.WriteLine(@"ParseError");
+			foreach (var error in errs)
+			{
+				Console.WriteLine(error);
+			}
 		}
 
-		private static async Task StartDNServer_Async(IPEndPoint[] updns, IPEndPoint[] puredns, string path)
+		private static void StartDNServer(
+			IEnumerable<IPAddress> upDns, ushort upDnsPort,
+			IEnumerable<IPAddress> pureDns, ushort pureDnsPort,
+			int udpListenerCount, int tcpListenerCount,
+			IPAddress upEcs, IPAddress pureEcs,
+			IEnumerable<string> list, IPEndPoint bindIpPoint, int timeout = 10000)
 		{
-			var any = new IPEndPoint(IPAddress.Any, ListenDefaultPort);
-			await StartDNServer_Async(updns, puredns, path, any);
-		}
+			var server = new ConditionalForwardingDnsServer(bindIpPoint, udpListenerCount, tcpListenerCount)
+			{
+				PureDns = new DnsClient(pureDns, timeout, pureDnsPort),
+				UpStreamDns = new DnsClient(upDns, timeout, upDnsPort),
+				Timeout = timeout,
+			};
+			if (pureEcs != null)
+			{
+				server.PureEcs = new ClientSubnetOption(32, pureEcs);
+			}
+			if (upEcs != null)
+			{
+				server.UpStreamEcs = new ClientSubnetOption(32, upEcs);
+			}
 
-		private static async Task StartDNServer_Async(IPEndPoint[] updns, IPEndPoint[] puredns, string path, IPEndPoint bindipPoint)
-		{
-			var server = new DnsServer(new ApartRequestResolver(updns, puredns, path));
-
+			server.LoadDomains(list);
 			if (Verbose)
 			{
-				server.Requested += (sender, e) => Console.WriteLine(e.Request);
-				server.Responded += (sender, e) => Console.WriteLine($@"{e.Request} => {e.Response}");
-			}
-			server.Listening += (sender, e) => Console.WriteLine(@"Listening:");
-			server.Errored += (sender, e) =>
-			{
-				Console.WriteLine($@"Errored: {e.Exception}");
-				if (e.Exception is ResponseException responseError)
+				server.ClientConnected += (sender, e) =>
 				{
-					Console.WriteLine(responseError.Response);
-				}
+					return Task.Run(() =>
+					{
+						Console.WriteLine($@"{e.RemoteEndpoint} Connected: {e.ProtocolType}");
+					});
+				};
+			}
+			server.ExceptionThrown += (sender, e) =>
+			{
+				return Task.Run(() =>
+				{
+					Console.WriteLine($@"Errored: {e.Exception}");
+				});
 			};
-			await server.Listen(bindipPoint);
+			server.Start();
 		}
 	}
 }

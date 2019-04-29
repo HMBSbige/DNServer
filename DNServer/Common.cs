@@ -1,19 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
 using System.Net;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace DNServer
 {
 	public static class Common
 	{
-		public static IPAddress PTRName2IP(string str)
-		{
-			var s = str.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
-			return IPAddress.Parse($@"{s[3]}.{s[2]}.{s[1]}.{s[0]}");
-		}
-
 		private static readonly Regex Ipv4Pattern = new Regex("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){1}(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$");
 
 		public static bool IsIPv4Address(string input)
@@ -64,43 +59,58 @@ namespace DNServer
 			return null;
 		}
 
-		public static IEnumerable<IPEndPoint> ToIPEndPoints(string str, int defaultport, char[] separator)
+		public static IPAddress ToIpAddress(string str)
+		{
+			if (string.IsNullOrWhiteSpace(str))
+			{
+				return null;
+			}
+
+			return IPAddress.TryParse(str, out var ip) ? ip : null;
+		}
+
+		public static IEnumerable<IPAddress> ToIpAddresses(string str, char[] separator)
 		{
 			if (string.IsNullOrWhiteSpace(str))
 			{
 				return null;
 			}
 			var s = str.Split(separator, StringSplitOptions.RemoveEmptyEntries);
-			var res = s.Select(ipEndPointsStr => ToIPEndPoint(ipEndPointsStr, defaultport)).Where(ipend => ipend != null)
-					.ToList();
-			return res.ToArray();
-		}
-
-		public static string FromIPEndPoints(IEnumerable<IPEndPoint> ipEndPoints, char separator = ',')
-		{
-			return string.Join(separator, ipEndPoints);
-		}
-
-		public static string RemoveLastString(this string str, string value)
-		{
-			var index = str.LastIndexOf(value, StringComparison.Ordinal);
-			if (index != -1)
+			var res = new List<IPAddress>();
+			foreach (var ipStr in s)
 			{
-				return str.Substring(0, index);
+				if (IPAddress.TryParse(ipStr, out var ip))
+				{
+					res.Add(ip);
+				}
 			}
-
-			return str;
+			return res;
 		}
 
-		public static string RemoveStartString(this string str, string value)
+		public static string FromIpAddresses(IEnumerable<IPAddress> ips, char separator = ',')
 		{
-			var index = str.IndexOf(value, StringComparison.Ordinal);
-			if (index == 0)
-			{
-				return str.Substring(value.Length);
-			}
+			return string.Join(separator, ips);
+		}
 
-			return str;
+		public static IEnumerable<string> ReadLines(string path)
+		{
+			var list = new List<string>();
+			if (File.Exists(path))
+			{
+				using (var sr = new StreamReader(path, Encoding.UTF8))
+				{
+					string line;
+					while ((line = sr.ReadLine()) != null)
+					{
+						var domain = line;
+						if (!string.IsNullOrWhiteSpace(domain))
+						{
+							list.Add(domain);
+						}
+					}
+				}
+			}
+			return list;
 		}
 	}
 }
