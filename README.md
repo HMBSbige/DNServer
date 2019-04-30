@@ -114,14 +114,14 @@ https://www.microsoft.com/net/download/all
   --version        Display version information.
 ```
 ### 用法
-上游 DNS 服务器为 `114.114.114.114,119.29.29.29`, 无污染 DNS 服务器为 `101.6.6.6:53`, 分流列表路径 `~/list/chndomains.txt`, 监听端口为 `0.0.0.0:53`
+上游 DNS 服务器为 `119.29.29.29,101.226.4.6`, 指定ecs为 `202.96.199.133`, 无污染 DNS 服务器为 `208.67.220.220:443`, 指定ecs为 `172.217.160.100`, 分流列表路径 `~/list/chndomains.txt`, 监听端口为 `0.0.0.0:53`, udp 和 tcp 都100并发
 
 #### Windows/Linux
 ```
-DNServer -u 114.114.114.114,119.29.29.29 -p 101.6.6.6:53 -l ~/list/chndomains.txt -b 0.0.0.0:53
+DNServer -u 119.29.29.29,101.226.4.6 -p 208.67.220.220 --upport 53 --pureport 443 --upecs 202.96.199.133 --pureecs 172.217.160.100 --udp 100 --tcp 100  -l /list/chndomains.txt -b 0.0.0.0:53
 ```
 
 #### Docker
 ```
-docker run -itd --name=dns --restart=always -p 53:53/udp -v ~/list:/list:ro hmbsbige/dnserver:DNServer -u 114.114.114.114,119.29.29.29 -p 101.6.6.6:53 -l /list/chndomains.txt -b 0.0.0.0:53
+docker run -itd --name=dns --restart=always -p 53:53 -p 53:53/udp -v ~/list:/list:ro hmbsbige/dnserver:DNServer -u 119.29.29.29,101.226.4.6 -p 208.67.220.220 --upport 53 --pureport 443 --upecs 202.96.199.133 --pureecs 172.217.160.100 --udp 100 --tcp 100  -l /list/chndomains.txt -b 0.0.0.0:53
 ```
