@@ -107,7 +107,9 @@ namespace DNServer
 					var options = new DnsQueryOptions
 					{
 						IsEDnsEnabled = true,
-						IsRecursionDesired = true
+						IsRecursionDesired = message.IsRecursionDesired,
+						IsDnsSecOk = message.IsDnsSecOk,
+						IsCheckingDisabled = message.IsCheckingDisabled
 					};
 
 					var existEcs = ExistEcs(message.EDnsOptions);
@@ -164,21 +166,8 @@ namespace DNServer
 					// if got an answer, copy it to the message sent to the client
 					if (upstreamResponse != null)
 					{
-						foreach (var record in upstreamResponse.AnswerRecords)
-						{
-							response.AnswerRecords.Add(record);
-						}
-
-						foreach (var record in upstreamResponse.AdditionalRecords)
-						{
-							response.AdditionalRecords.Add(record);
-						}
-
-						//if (existEcs)
-						{
-							response.EDnsOptions = upstreamResponse.EDnsOptions;
-						}
-
+						upstreamResponse.TransactionID = response.TransactionID;
+						response = upstreamResponse;
 						response.ReturnCode = ReturnCode.NoError;
 						e.Response = response;
 					}

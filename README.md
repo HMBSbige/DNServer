@@ -1,5 +1,7 @@
 # 分流 DNS 服务器
 
+* 支持 DNSSEC、EDNS Client Subnet（需要上游服务器支持）
+
 ## DNS2PROXY
 
 通过 SOCKS/HTTP 代理的 DNS 服务器，用于搭建无污染的 DNS 服务器
