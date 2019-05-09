@@ -167,6 +167,10 @@ namespace DNServer
 					if (upstreamResponse != null)
 					{
 						upstreamResponse.TransactionID = response.TransactionID;
+						if (!existEcs)
+						{
+							upstreamResponse.EDnsOptions = response.EDnsOptions;
+						}
 						response = upstreamResponse;
 						response.ReturnCode = ReturnCode.NoError;
 						e.Response = response;
