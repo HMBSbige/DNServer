@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -92,25 +91,14 @@ namespace DNServer
 			return string.Join(separator, ips);
 		}
 
-		public static IEnumerable<string> ReadLines(string path)
+		public static string[] ReadLines(string path)
 		{
-			var list = new List<string>();
-			if (File.Exists(path))
+			using var client = new WebClient
 			{
-				using (var sr = new StreamReader(path, Encoding.UTF8))
-				{
-					string line;
-					while ((line = sr.ReadLine()) != null)
-					{
-						var domain = line;
-						if (!string.IsNullOrWhiteSpace(domain))
-						{
-							list.Add(domain);
-						}
-					}
-				}
-			}
-			return list;
+				Encoding = new UTF8Encoding(false)
+			};
+			var s = client.DownloadString(path);
+			return s.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 		}
 	}
 }

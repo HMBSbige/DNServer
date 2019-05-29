@@ -47,7 +47,7 @@ namespace DNServer
 			[Option(@"tcp", HelpText = @"The count of threads listings on tcp, 0 to deactivate tcp", Default = DEFAULT_NUMBER_OF_CONCURRENCY)]
 			public int TcpCount { get; set; }
 
-			[Option('l', @"list", HelpText = @"Domains list file path", Default = @"chndomains.txt")]
+			[Option('l', @"list", HelpText = @"Domains list file path", Default = @"https://raw.githubusercontent.com/HMBSbige/Text_Translation/master/chndomains.txt")]
 			public string Path { get; set; }
 		}
 
@@ -114,6 +114,7 @@ namespace DNServer
 				return 1;
 			}
 			var list = Common.ReadLines(options.Path);
+			Console.WriteLine($@"Loaded List: {list.Length}");
 
 			StartDNServer(ipAddresses, options.UpDnsPort,
 				pureDns, options.PureDnsPort,
