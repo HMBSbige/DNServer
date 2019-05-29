@@ -18,6 +18,7 @@ namespace DNServer
 
 		private readonly IEnumerable<string> specialDomains = new List<string> { @"lan", @"local", @"localdomain" };
 		private readonly IEnumerable<string> ptrDomains = new List<string> { @"in-addr.arpa" };
+		private readonly IEnumerable<string> banDomains = new List<string> { @"bja.gov" };
 
 		#endregion
 
@@ -57,7 +58,7 @@ namespace DNServer
 
 		#endregion
 
-		#region 白名单列表
+		#region 列表
 
 		public void LoadDomains(IEnumerable<string> list)
 		{
@@ -86,6 +87,11 @@ namespace DNServer
 		private bool IsLocal(DomainName name)
 		{
 			return specialDomains.Any(domain => name.IsEqualOrSubDomainOf(DomainName.Parse(domain)));
+		}
+
+		private bool IsBan(DomainName name)
+		{
+			return banDomains.Any(domain => name.IsEqualOrSubDomainOf(DomainName.Parse(domain)));
 		}
 
 		#endregion
@@ -122,8 +128,13 @@ namespace DNServer
 					}
 
 					var question = message.Questions[0];
-					Console.WriteLine($@"DNS query: {question.Name}");
-					if (IsLocal(question.Name))
+					Console.WriteLine($@"DNS query: {question.Name} {question.RecordClass} {question.RecordType}");
+					if (IsBan(question.Name))
+					{
+						e.Response = null;
+						return;
+					}
+					else if (IsLocal(question.Name))
 					{
 						response.ReturnCode = ReturnCode.NxDomain;
 						e.Response = response;

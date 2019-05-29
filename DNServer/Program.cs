@@ -151,17 +151,17 @@ namespace DNServer
 			server.LoadDomains(list);
 			if (Verbose)
 			{
-				server.ClientConnected += (sender, e) =>
+				server.ClientConnected += async (sender, e) =>
 				{
-					return Task.Run(() =>
+					await Task.Run(() =>
 					{
-						Console.WriteLine($@"{e.RemoteEndpoint} Connected: {e.ProtocolType}");
+						Console.WriteLine($@"OnClientConnected: {e.RemoteEndpoint} Connected: {e.ProtocolType}");
 					});
 				};
 			}
-			server.ExceptionThrown += (sender, e) =>
+			server.ExceptionThrown += async (sender, e) =>
 			{
-				return Task.Run(() =>
+				await Task.Run(() =>
 				{
 					Console.WriteLine($@"Errored: {e.Exception}");
 				});
