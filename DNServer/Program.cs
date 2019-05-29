@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DNServer
@@ -110,11 +111,12 @@ namespace DNServer
 				options.UdpCount, options.TcpCount,
 				upEcs, pureEcs,
 				list, bindIpEndPoint, 10000);
-			while (true)
-			{
 
-			}
-			// return 0;
+			var block = new SemaphoreSlim(0);
+			block.Wait();
+			//Task.Delay(-1).Wait();
+
+			return 0;
 		}
 
 		private static void HandleParseError(IEnumerable<Error> errs)
