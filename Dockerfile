@@ -1,8 +1,7 @@
-FROM mcr.microsoft.com/dotnet/core/runtime:3.0-stretch-slim AS base
+FROM mcr.microsoft.com/dotnet/core/runtime:3.0-buster-slim AS base
 WORKDIR /app
 
-
-FROM mcr.microsoft.com/dotnet/core/sdk:3.0-stretch AS build
+FROM mcr.microsoft.com/dotnet/core/sdk:3.0-buster AS build
 WORKDIR /src
 COPY ["DNServer/DNServer.csproj", "DNServer/"]
 COPY ["ARSoft.Tools.Net/ARSoft.Tools.Net/ARSoft.Tools.Net.csproj", "ARSoft.Tools.Net/ARSoft.Tools.Net/"]

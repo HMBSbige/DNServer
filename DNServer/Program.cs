@@ -14,8 +14,11 @@ namespace DNServer
 		private class Options
 		{
 			// Omitting long name, defaults to name of property, ie "--verbose"
-			[Option(Default = true, HelpText = @"Prints all messages to standard output.")]
+			[Option(Default = false, HelpText = @"Prints all messages to standard output.")]
 			public bool Verbose { get; set; }
+
+			[Option(Default = false, HelpText = @"Refuse 'any' query.")]
+			public bool BanAny { get; set; }
 
 			[Option('b', @"bindip", HelpText = @"Listen on...", Default = @"0.0.0.0:53")]
 			public string BindIpEndPoint { get; set; }
@@ -48,7 +51,8 @@ namespace DNServer
 			public string Path { get; set; }
 		}
 
-		public static bool Verbose = true;
+		public static bool Verbose;
+		public static bool BanAny;
 		public const int DNSDefaultPort = 53;
 		public const int DEFAULT_NUMBER_OF_CONCURRENCY = 100;
 
@@ -62,6 +66,7 @@ namespace DNServer
 		private static int RunOptionsAndReturnExitCode(Options options)
 		{
 			Verbose = options.Verbose;
+			BanAny = options.BanAny;
 			IEnumerable<IPAddress> updns;
 			IEnumerable<IPAddress> puredns;
 			IPAddress upEcs;
@@ -72,9 +77,12 @@ namespace DNServer
 			List<IPAddress> pureDns;
 			try
 			{
+				Console.WriteLine($@"Ban Any Query: {BanAny}");
+
 				updns = Common.ToIpAddresses(options.UpDNS, new[] { ',', '，' });
 				ipAddresses = updns.ToList();
 				Console.WriteLine($@"UpDNS: {Common.FromIpAddresses(ipAddresses)}");
+				Console.WriteLine($@"UpDNS Port: {options.UpDnsPort}");
 
 				puredns = Common.ToIpAddresses(options.PureDNS, new[] { ',', '，' });
 				if (puredns == null)
@@ -83,6 +91,7 @@ namespace DNServer
 				}
 				pureDns = puredns.ToList();
 				Console.WriteLine($@"PureDNS: {Common.FromIpAddresses(pureDns)}");
+				Console.WriteLine($@"PureDNS Port: {options.PureDnsPort}");
 
 				bindIpEndPoint = Common.ToIPEndPoint(options.BindIpEndPoint, 53);
 				Console.WriteLine($@"Listen on: {bindIpEndPoint}");
@@ -101,7 +110,7 @@ namespace DNServer
 			}
 			catch
 			{
-				Console.WriteLine(@"DNS Server ERROR!");
+				Console.WriteLine(@"DNS Server Setting Error!");
 				return 1;
 			}
 			var list = Common.ReadLines(options.Path);
@@ -140,6 +149,7 @@ namespace DNServer
 				PureDns = new DnsClient(pureDns, timeout, pureDnsPort),
 				UpStreamDns = new DnsClient(upDns, timeout, upDnsPort),
 				Timeout = timeout,
+				BanAny = BanAny
 			};
 			if (pureEcs != null)
 			{
@@ -151,21 +161,11 @@ namespace DNServer
 			}
 
 			server.LoadDomains(list);
-			if (Verbose)
-			{
-				server.ClientConnected += async (sender, e) =>
-				{
-					await Task.Run(() =>
-					{
-						Console.WriteLine($@"OnClientConnected: {e.RemoteEndpoint} Connected: {e.ProtocolType}");
-					});
-				};
-			}
 			server.ExceptionThrown += async (sender, e) =>
 			{
 				await Task.Run(() =>
 				{
-					Console.WriteLine($@"Errored: {e.Exception}");
+					Console.WriteLine(Verbose ? $@"Errored: {e.Exception}" : $@"Errored: {e.Exception.Message}");
 				});
 			};
 			server.Start();

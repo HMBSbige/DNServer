@@ -2,6 +2,7 @@
 using ARSoft.Tools.Net.Dns;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -18,11 +19,11 @@ namespace DNServer
 
 		private readonly IEnumerable<string> specialDomains = new List<string> { @"lan", @"local", @"localdomain" };
 		private readonly IEnumerable<string> ptrDomains = new List<string> { @"in-addr.arpa" };
-		private readonly IEnumerable<string> banDomains = new List<string> { @"bja.gov" };
+		private readonly IEnumerable<string> banDomains = new List<string> { };
 
 		#endregion
 
-		#region 共有成员
+		#region 公有成员
 
 		public DnsClient UpStreamDns;
 
@@ -31,6 +32,8 @@ namespace DNServer
 		public ClientSubnetOption UpStreamEcs;
 
 		public ClientSubnetOption PureEcs;
+
+		public bool BanAny;
 
 		#endregion
 
@@ -51,6 +54,7 @@ namespace DNServer
 			PureDns = DnsClient.Default;
 			UpStreamEcs = null;
 			PureEcs = null;
+			BanAny = false;
 			LoadDomains(specialDomains);
 			LoadDomains(ptrDomains);
 			QueryReceived += OnQueryReceived;
@@ -58,7 +62,7 @@ namespace DNServer
 
 		#endregion
 
-		#region 列表
+		#region 规则
 
 		public void LoadDomains(IEnumerable<string> list)
 		{
@@ -89,9 +93,19 @@ namespace DNServer
 			return specialDomains.Any(domain => name.IsEqualOrSubDomainOf(DomainName.Parse(domain)));
 		}
 
-		private bool IsBan(DomainName name)
+		private void IsBan(DnsMessageEntryBase question)
 		{
-			return banDomains.Any(domain => name.IsEqualOrSubDomainOf(DomainName.Parse(domain)));
+			var name = question.Name;
+			var recordType = question.RecordType;
+			if (BanAny && recordType == RecordType.Any)
+			{
+				throw new InvalidDataException(@"Query Refused: RecordType.Any");
+			}
+
+			if (banDomains.Any(domain => name.IsEqualOrSubDomainOf(DomainName.Parse(domain))))
+			{
+				throw new InvalidDataException($@"Query Refused: {name}");
+			}
 		}
 
 		#endregion
@@ -109,6 +123,9 @@ namespace DNServer
 
 				if (message.Questions.Count == 1)
 				{
+					var question = message.Questions[0];
+					IsBan(question);
+
 					DnsClient dnsClient;
 					var options = new DnsQueryOptions
 					{
@@ -127,14 +144,9 @@ namespace DNServer
 						}
 					}
 
-					var question = message.Questions[0];
+					Console.WriteLine($@"{e.RemoteEndpoint} Connected: {e.ProtocolType}");
 					Console.WriteLine($@"DNS query: {question.Name} {question.RecordClass} {question.RecordType}");
-					if (IsBan(question.Name))
-					{
-						e.Response = null;
-						return;
-					}
-					else if (IsLocal(question.Name))
+					if (IsLocal(question.Name))
 					{
 						response.ReturnCode = ReturnCode.NxDomain;
 						e.Response = response;
