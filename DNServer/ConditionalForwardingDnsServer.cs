@@ -127,6 +127,7 @@ namespace DNServer
 					IsBan(question);
 
 					DnsClient dnsClient;
+					DnsClient dnsClientBackup;
 					var options = new DnsQueryOptions
 					{
 						IsEDnsEnabled = true,
@@ -155,6 +156,7 @@ namespace DNServer
 					else if (IsOnList(question.Name))
 					{
 						dnsClient = UpStreamDns;
+						dnsClientBackup = PureDns;
 						if (!existEcs)
 						{
 							if (UpStreamEcs != null)
@@ -170,6 +172,7 @@ namespace DNServer
 					else
 					{
 						dnsClient = PureDns;
+						dnsClientBackup = UpStreamDns;
 						if (!existEcs)
 						{
 							if (PureEcs != null)
@@ -194,6 +197,21 @@ namespace DNServer
 						{
 							upstreamResponse.EDnsOptions = response.EDnsOptions;
 						}
+						response = upstreamResponse;
+						response.ReturnCode = ReturnCode.NoError;
+						e.Response = response;
+						return;
+					}
+
+					upstreamResponse = await dnsClientBackup.ResolveAsync(question.Name, question.RecordType, question.RecordClass, options);
+					if (upstreamResponse != null)
+					{
+						upstreamResponse.TransactionID = response.TransactionID;
+						if (!existEcs)
+						{
+							upstreamResponse.EDnsOptions = response.EDnsOptions;
+						}
+
 						response = upstreamResponse;
 						response.ReturnCode = ReturnCode.NoError;
 						e.Response = response;

@@ -120,7 +120,7 @@ namespace DNServer
 				pureDns, options.PureDnsPort,
 				options.UdpCount, options.TcpCount,
 				upEcs, pureEcs,
-				list, bindIpEndPoint, 10000);
+				list, bindIpEndPoint, 5000);
 
 			var block = new SemaphoreSlim(0);
 			block.Wait();
